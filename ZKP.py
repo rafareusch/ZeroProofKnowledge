@@ -1,4 +1,5 @@
 import sys
+import numpy as np
 from collections import namedtuple
 
 
@@ -105,7 +106,9 @@ if __name__ == "__main__":
     P = Point(5, 1)
     Q = Point(5, 1)
     #R = Point(2, 3103)
-    TwoP = ec_add(P, P)
+    #TwoP = ec_add(P, P)
+    TwoP = ec_add(Q,P)
+
     print(TwoP)
     # ThreeP = ec_add(TwoP, P)
     # Compute 4P two different ways.
