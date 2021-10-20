@@ -11,112 +11,81 @@ O = 'Origin'
 # Given curve
 # y**2 = x**3 + A * x + B (2,2)
 
+#p = 2111
+#a = 20
+#b = 13
 p = 17 # random prime (?)
 a = 2
 b = 2
 
 
-def inv(n, q):
-    """div on PN modulo a/b mod q as a * inv(b, q) mod q
-    >>> assert n * inv(n, q) % q == 1
-    """
-    for i in range(q):
-        if (n * i) % q == 1:
-            return i
-        pass
-    assert False, "unreached"
-    pass
+#https://crypto.stackexchange.com/questions/11743/scalar-multiplication-on-elliptic-curves/74710
 
 
-def sqrt(n, q):
-    """sqrt on PN modulo: it may not exist
-    >>> assert (sqrt(n, q) ** 2) % q == n
-    """
-    assert n < q
-    for i in range(1, q):
-        if i * i % q == n:
-            return (i, q - i)
-        pass
-    raise Exception("not found")
+# Extended Euclidean algorithm
+def extended_gcd(aa, bb):
+    lastremainder, remainder = abs(aa), abs(bb)
+    x, lastx, y, lasty = 0, 1, 1, 0
+    while remainder:
+        lastremainder, (quotient, remainder) = remainder, divmod(lastremainder, remainder)
+        x, lastx = lastx - quotient*x, x
+        y, lasty = lasty - quotient*y, y
+    return lastremainder, lastx * (-1 if aa < 0 else 1), lasty * (-1 if bb < 0 else 1)
+
+def modinv(a, m):
+    g, x, y = extended_gcd(a, m)
+    if g != 1:
+        raise ValueError
+    return x % m
 
 
-def valid(P):
-    """
-    Determine whether we have a valid representation of a point
-    on our curve.  We assume that the x and y coordinates
-    are always reduced modulo p, so that we can compare
-    two points for equality with a simple ==.
-    """
-    if P == O:
-        return True
+def ecc_double(P):
+    x1,y1 = P
+    s = ((3*(x1**2) + a) * modinv(2*y1, p))%p
+    x3 = (s**2 - x1 - x1)%p
+    y3 = (s*(x1-x3) - y1)%p
+    return Point(x3, y3)
+
+
+def ecc_add(P1, P2):
+    s = 0
+    x1,y1 = P1
+    x2,y2 = P2
+    if (x1==x2):
+        s = ((3*(x1**2) + a) * modinv(2*y1, p))%p
     else:
-        return (
-            (P.y**2 - (P.x**3 + a*P.x + b)) % p == 0 and
-            0 <= P.x < p and 0 <= P.y < p)
+        s = ((y2-y1) * modinv(x2-x1, p))%p
+    x3 = (s**2 - x1 - x2)%p
+    y3 = (s*(x1 - x3) - y1)%p
+    return Point(x3, y3)
 
-def inv_mod_p(x):
-    """
-    Compute an inverse for x modulo p, assuming that x
-    is not divisible by p.
-    """
-    if x % p == 0:
-        raise ZeroDivisionError("Impossible inverse")
-    return pow(x, p-2, p)
-
-def ec_inv(P):
-    """
-    Inverse of the point P on the elliptic curve y^2 = x^3 + ax + b.
-    """
-    if P == O:
-        return P
-    return Point(P.x, (-P.y)%p)
-
-def ec_add(P, Q):
-    """
-    Sum of the points P and Q on the elliptic curve y^2 = x^3 + ax + b.
-    """
-    if not (valid(P) and valid(Q)):
-        raise ValueError("Invalid inputs")
-
-    # Deal with the special cases where either P, Q, or P + Q is
-    # the origin.
-    if P == O:
-        result = Q
-    elif Q == O:
-        result = P
-    elif Q == ec_inv(P):
-        result = O
-    else:
-        # Cases not involving the origin.
-        if P == Q:
-            dydx = (3 * P.x**2 + a) * inv_mod_p(2 * P.y)
+def double_and_add(multi, P):
+    (x3, y3)=(0, 0)
+    (x1, y1) = (P.x, P.y)
+    (x_tmp, y_tmp) = (P.x, P.y)
+    init = 0
+    for i in str(bin(multi)[2:]):
+        if (i=='1') and (init==0):
+            init = 1
+        elif (i=='1') and (init==1):
+            (x3,y3) = ecc_double(Point(x_tmp, y_tmp))
+            (x3,y3) = ecc_add(Point(x1,y1), Point(x3, y3))
+            (x_tmp, y_tmp) = (x3, y3)
         else:
-            dydx = (Q.y - P.y) * inv_mod_p(Q.x - P.x)
-        x = (dydx**2 - P.x - Q.x) % p
-        y = (dydx * (P.x - x) - P.y) % p
-        result = Point(x, y)
-
-    # The above computations *should* have given us another point
-    # on the curve.
-    assert valid(result)
+            (x3, y3) = ecc_double(Point(x_tmp, y_tmp))
+            (x_tmp, y_tmp) = (x3, y3)
+    result  = Point(x3, y3)
     return result
+
 
 
 if __name__ == "__main__":
     P = Point(5, 1)
     Q = Point(5, 1)
-    #R = Point(2, 3103)
-    #TwoP = ec_add(P, P)
-    TwoP = ec_add(Q,P)
 
-    print(TwoP)
-    # ThreeP = ec_add(TwoP, P)
-    # Compute 4P two different ways.
-    #assert ec_add(P, ThreeP) == ec_add(TwoP, TwoP)
-    # Check the associative law.
-    #assert ec_add(P, ec_add(Q, R)) == ec_add(ec_add(P, Q), R)
+    result = ecc_add(Q,P)
+    print(result)
+    
+    result = double_and_add(11, P)
+    print(result)
 
- 
-    priv = 5
-    # pub1, _ = ec.at(7)
-    # plain, _ = ec.at(1)
