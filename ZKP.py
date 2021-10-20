@@ -11,17 +11,26 @@ O = 'Origin'
 # Given curve
 # y**2 = x**3 + A * x + B (2,2)
 
-#p = 2111
-#a = 20
-#b = 13
-p = 17 # random prime (?)
+p = 649942387
 a = 2
 b = 2
 
 
+A = Point(112404970, 181640566)
+B = Point(447214710, 625708705)
+
+G = (127310624, 442590477)
+X = Point(408641257, 77546425)
+R = Point(169194362, 454004252)
+Z = Point(51512840, 29904980)
+E1 = 649919997 #(#E1)
+t1 = 470979194
+t2 = 470979195
+t3 = 470979196
+t4 = 470979197
+t5 = 470979198
+
 #https://crypto.stackexchange.com/questions/11743/scalar-multiplication-on-elliptic-curves/74710
-
-
 # Extended Euclidean algorithm
 def extended_gcd(aa, bb):
     lastremainder, remainder = abs(aa), abs(bb)
@@ -61,8 +70,8 @@ def ecc_add(P1, P2):
 
 def double_and_add(multi, P):
     (x3, y3)=(0, 0)
-    (x1, y1) = (P.x, P.y)
-    (x_tmp, y_tmp) = (P.x, P.y)
+    (x1, y1) = P
+    (x_tmp, y_tmp) = P
     init = 0
     for i in str(bin(multi)[2:]):
         if (i=='1') and (init==0):
@@ -83,9 +92,19 @@ if __name__ == "__main__":
     P = Point(5, 1)
     Q = Point(5, 1)
 
-    result = ecc_add(Q,P)
-    print(result)
-    
-    result = double_and_add(11, P)
-    print(result)
+    #result = ecc_add(Q,P)
+    #print(result)
+    #
+    #result = double_and_add(11, P)
+    #print(result)
 
+    ComparePoint = double_and_add(5142121,R)
+    ComparePoint = ecc_add(A,ComparePoint) 
+    
+    print(str(ComparePoint) + " = " + str(double_and_add(t1,G)) + " (t1) ")
+    print(str(ComparePoint) + " = " + str(double_and_add(t2,G)) + " (t2) ")
+    print(str(ComparePoint) + " = " + str(double_and_add(t3,G)) + " (t3) ")
+    print(str(ComparePoint) + " = " + str(double_and_add(t4,G)) + " (t4) ")
+    print(str(ComparePoint) + " = " + str(double_and_add(t5,G)) + " (t5) ")
+
+#t.G = A + c.R
